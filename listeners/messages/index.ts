@@ -40,11 +40,12 @@ class GabeSenpaiMessages {
 
 const register = (app: App) => {
   const gabeMessages = new GabeSenpaiMessages();
-
-  app.message("gabe-senpai", async ({ say }) => {
+  app.message("gabe-senpai", async ({ say, message }) => {
     const nextMessage = gabeMessages.getNextMessage();
     if (nextMessage !== "") {
-      await say(nextMessage);
+      await say({ text: nextMessage, thread_ts: message.ts }).catch(
+        console.error
+      );
     }
   });
 };

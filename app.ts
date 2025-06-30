@@ -22,15 +22,34 @@ registerListeners(app);
 (async () => {
   try {
     await app.start(process.env.PORT || 3000);
+    const appUserId = (await app.client.auth.test()).bot_id;
+    if (appUserId === undefined) throw new Error("Failed to get bot id!");
+
     app.logger.info("⚡️ Bolt app is running! ⚡️");
-    setUpDailyGreeting((msg) =>
-      app.client.chat
-        .postMessage({
-          text: msg,
-          channel: CMUEATS_CHANNEL_ID,
-        })
-        .catch(app.logger.error)
-    );
+    app.logger.info(`Bot user id: ${appUserId}`);
+    setUpDailyGreeting(async (msg) => {
+      // make sure latest message was not by mem-cho
+      const latestMessage = (
+        await app.client.conversations
+          .history({
+            limit: 1,
+            channel: CMUEATS_CHANNEL_ID,
+          })
+          .catch(app.logger.error)
+      )?.messages?.[0];
+
+      if (latestMessage?.bot_profile?.id !== appUserId) {
+        app.logger.info("Sending morning greeting :3");
+        app.client.chat
+          .postMessage({
+            text: msg,
+            channel: CMUEATS_CHANNEL_ID,
+          })
+          .catch(app.logger.error);
+      } else {
+        app.logger.info("Skipping morning greeting. Dead chat");
+      }
+    });
     setUpUptimeChecker((msg) =>
       app.client.chat
         .postMessage({

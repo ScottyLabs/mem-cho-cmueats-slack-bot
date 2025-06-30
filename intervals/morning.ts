@@ -38,7 +38,9 @@ export const setUpDailyGreeting = (
 ) => {
   const currentTime = DateTime.local({ zone: "America/New_York" });
   const nextMorningTime =
-    currentTime.hour < greetingTime.hour
+    currentTime.hour < greetingTime.hour ||
+    (currentTime.hour === greetingTime.hour &&
+      currentTime.minute < greetingTime.minute)
       ? currentTime.set(greetingTime)
       : currentTime.set(greetingTime).plus({ days: 1 });
   scheduleNextGreeting(sendMessage, nextMorningTime);
