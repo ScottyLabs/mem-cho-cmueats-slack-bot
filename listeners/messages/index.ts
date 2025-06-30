@@ -1,8 +1,52 @@
-import type { App } from '@slack/bolt';
-import sampleMessageCallback from './sample-message';
+import type { App } from "@slack/bolt";
+import sampleMessageCallback from "./sample-message";
+
+class GabeSenpaiMessages {
+  index = 0;
+  messages = [
+    "who ya calling senpai? He's mine!",
+    "~Stop playing with my feelings >_<",
+    "...",
+    "...",
+    "okay now you're just taunting me",
+    "I'm 25! geez",
+    "...",
+    "",
+    "",
+    "*pouty face",
+    "",
+    "",
+    "",
+    "Please stop",
+  ];
+  lastMessageSentTimestamp = 0;
+  FORGET_TIME_INTERVAL = 1000 * 60 * 30; // 30 min
+
+  getNextMessage() {
+    const curTimestamp = +new Date();
+    if (
+      curTimestamp - this.lastMessageSentTimestamp >=
+      this.FORGET_TIME_INTERVAL
+    ) {
+      this.index = 0;
+    }
+    this.lastMessageSentTimestamp = curTimestamp;
+    if (this.index < this.messages.length) {
+      return this.messages[this.index++];
+    }
+    return "";
+  }
+}
 
 const register = (app: App) => {
-  app.message(/^(hi|hello|hey).*/, sampleMessageCallback);
+  const gabeMessages = new GabeSenpaiMessages();
+
+  app.message("gabe-senpai", async ({ say }) => {
+    const nextMessage = gabeMessages.getNextMessage();
+    if (nextMessage !== "") {
+      await say(nextMessage);
+    }
+  });
 };
 
 export default { register };
