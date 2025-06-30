@@ -7,11 +7,7 @@ const greetingTime = {
   second: 0,
   millisecond: 0,
 };
-const currentTime = DateTime.local({ zone: "America/New_York" });
-let nextMorningTime =
-  currentTime.hour < greetingTime.hour
-    ? currentTime.set(greetingTime)
-    : currentTime.set(greetingTime).plus({ days: 1 });
+
 const greetings = [
   "ohayou cmueats!",
   "morning",
@@ -24,23 +20,26 @@ export const scheduleNextGreeting = (
   nextMorningTime: DateTime<true> // should be in desired timezone
 ) => {
   const currentTime = DateTime.local({ zone: "America/New_York" });
-  console.log(nextMorningTime);
+  console.log(
+    `Scheduling morning message for ${nextMorningTime}. Current time: ${currentTime}`
+  );
   setTimeout(() => {
     sendMessage(greetings[Math.floor(Math.random() * greetings.length)]);
     scheduleNextGreeting(sendMessage, nextMorningTime.plus({ days: 1 })); // this actually accounts for DST properly
   }, nextMorningTime.diff(currentTime).toMillis());
 };
 
+/**
+ *
+ * @param sendMessage We expect it to catch its own error
+ */
 export const setUpDailyGreeting = (
-  app: App<StringIndexed>,
-  channelId: string
+  sendMessage: (msg: string) => Promise<unknown>
 ) => {
-  scheduleNextGreeting((msg: string) => {
-    return app.client.chat
-      .postMessage({
-        text: msg,
-        channel: channelId,
-      })
-      .catch(app.logger.error);
-  }, nextMorningTime);
+  const currentTime = DateTime.local({ zone: "America/New_York" });
+  const nextMorningTime =
+    currentTime.hour < greetingTime.hour
+      ? currentTime.set(greetingTime)
+      : currentTime.set(greetingTime).plus({ days: 1 });
+  scheduleNextGreeting(sendMessage, nextMorningTime);
 };
