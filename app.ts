@@ -27,7 +27,7 @@ registerListeners(app);
       app.client.chat
         .postMessage({
           text: msg,
-          channel: "C043UV30DHA",
+          channel: CMUEATS_CHANNEL_ID,
         })
         .catch(app.logger.error)
     );
@@ -35,7 +35,7 @@ registerListeners(app);
       app.client.chat
         .postMessage({
           text: msg,
-          channel: "C093PQ4FBTP",
+          channel: CMUEATS_CHANNEL_ID,
         })
         .catch(app.logger.error)
     );

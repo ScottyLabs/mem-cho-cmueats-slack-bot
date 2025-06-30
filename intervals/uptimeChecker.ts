@@ -1,11 +1,4 @@
-import { App, StringIndexed } from "@slack/bolt";
-
-const sites = [
-  "https://dining.apis.scottylabs.org/locations",
-  "https://cmueats.com/",
-  "https://cmueat.com/",
-  "https://staging.cmueatdfs.com/",
-];
+const sites = process.env.MONITORED_URLS?.split(",");
 const checkSite = (
   url: string,
   onError: (error: any) => any,
@@ -22,7 +15,7 @@ export const setUpUptimeChecker = (
   sendMessage: (msg: string) => Promise<any>
 ) => {
   setInterval(() => {
-    sites.forEach((site) =>
+    sites?.forEach((site) =>
       checkSite(
         site,
         (error) => {
