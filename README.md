@@ -1,8 +1,9 @@
-# Bolt for JavaScript (TypeScript) Template App
+# Mem-cho!
 
 ## Getting started
 
 Run `pnpm install` to install packages.
+
 `pnpm build && pnpm start` to run the server locally.
 (Note that to run your updated changes, you'll need to re-run the command)
 
