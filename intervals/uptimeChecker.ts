@@ -32,7 +32,7 @@ export const setUpUptimeChecker = (
       checkSite(
         site,
         (error) => {
-          console.log(`check failed for ${site}`);
+          console.log(`check failed for ${site}`, error);
           siteStatus[site].failedFetchCount++;
 
           if (siteStatus[site].downState === undefined) {
