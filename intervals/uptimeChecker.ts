@@ -22,9 +22,7 @@ export const setUpUptimeChecker = (
           console.log(`check failed for ${site}`);
 
           if (!isCurrentlyDown[site]) {
-            sendMessage(
-              `<!channel> ${site} is down with error "${error}"!! Sending <3`
-            );
+            sendMessage(`Hi! ${site} is down with error "${error}" Sending <3`);
             isCurrentlyDown[site] = true;
           }
         },
