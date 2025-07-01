@@ -1,5 +1,17 @@
 # Bolt for JavaScript (TypeScript) Template App
 
+## Getting started
+
+Run `pnpm install` to install packages.
+`pnpm build && pnpm start` to run the server locally.
+(Note that to run your updated changes, you'll need to re-run the command)
+
+Do make sure that you populate the necessary env variables in a `.env` file before running. Check the Railway env variables and the `env.sample` file for reference, or ask Eric Xu on Slack if you have any questions.
+
+This app communicates with Slack via websocket using the Bolt framework, which is Slack's own app framework.
+
+## Random boilerplate README
+
 This is a generic Bolt for JavaScript (TypeScript) template app used to build out Slack apps.
 
 Before getting started, make sure you have a development workspace where you have permissions to install apps. If you don’t have one setup, go ahead and [create one](https://slack.com/create).
