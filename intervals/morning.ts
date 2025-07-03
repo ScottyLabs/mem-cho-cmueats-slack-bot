@@ -1,5 +1,5 @@
-import { App, StringIndexed } from "@slack/bolt";
 import { DateTime } from "luxon";
+import { getWebsiteStatusString } from "./uptimeChecker";
 
 const greetingTime = {
   hour: 9,
@@ -12,8 +12,8 @@ const greetings = [
   "ohayou cmueats!",
   "morning",
   "yawwn good morning cmueats!",
-  "How's life? Good morning!",
-  "Do you ever wonder if you have free will?",
+  "Good morning!",
+  "New day, new life!",
 ];
 export const scheduleNextGreeting = (
   sendMessage: (msg: string) => Promise<unknown>,
@@ -24,7 +24,11 @@ export const scheduleNextGreeting = (
     `Scheduling morning message for ${nextMorningTime}. Current time: ${currentTime}`
   );
   setTimeout(() => {
-    sendMessage(greetings[Math.floor(Math.random() * greetings.length)]);
+    sendMessage(
+      `${
+        greetings[Math.floor(Math.random() * greetings.length)]
+      }\n\n${getWebsiteStatusString()}`
+    );
     scheduleNextGreeting(sendMessage, nextMorningTime.plus({ days: 1 })); // this actually accounts for DST properly
   }, nextMorningTime.diff(currentTime).toMillis());
 };

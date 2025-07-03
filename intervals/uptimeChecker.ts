@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import { env } from "../env";
 interface SiteData {
   downState?: {
@@ -9,6 +10,7 @@ interface SiteData {
   failedFetchCount: number;
 }
 const siteStatus: Record<string, SiteData> = {};
+const startupTime = DateTime.local({ zone: "America/New_York" });
 
 const checkSite = (
   url: string,
@@ -86,9 +88,18 @@ const siteStatusToSingleLineString = (siteUrl: string, siteData: SiteData) => {
 };
 
 export const getWebsiteStatusString = () => {
-  return Object.entries(siteStatus)
+  const websiteLines = Object.entries(siteStatus)
     .map(([siteUrl, siteData]) =>
       siteStatusToSingleLineString(siteUrl, siteData)
     )
     .join("\n");
+  return `*Website Status*\n${websiteLines}\n\n \`Startup time: ${startupTime.toLocaleString(
+    {
+      weekday: "short",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  )}\``;
 };
