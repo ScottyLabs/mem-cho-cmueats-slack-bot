@@ -3,8 +3,8 @@ import { getWebsiteStatusString } from "./uptimeChecker";
 
 const greetingTime = {
   hour: 9,
-  minute: 0,
-  second: 0,
+  minute: 7,
+  second: 27, // WYSI
   millisecond: 0,
 };
 

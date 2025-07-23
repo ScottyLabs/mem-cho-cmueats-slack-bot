@@ -11,5 +11,6 @@ const envSchema = z.object({
   MONITOR_INTERVAL_MS: z.coerce.number().default(10000),
   URL_TIMEOUT_MS: z.coerce.number().default(6000), // should be reasonably less than MONITOR_INTERVAL_MS
   ALERT_THRESHOLD_MS: z.coerce.number().default(60 * 1000),
+  PING_THRESHOLD_MS: z.coerce.number().default(5 * 60 * 1000),
 });
 export const env = envSchema.parse(process.env);
