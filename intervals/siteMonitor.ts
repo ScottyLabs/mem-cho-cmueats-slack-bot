@@ -52,7 +52,7 @@ export class SiteMonitor {
     ) {
       downState.alertStage = "WARNED";
       this.sendMessage(
-        `Hi! ${siteUrl} has been down for the past ${
+        `Konnichiwa! ${siteUrl} has been down for the past ${
           this.alertThresholdMs / 1000
         } seconds with the following errors: ${downState.failErrors.join(", ")}`
       );
@@ -63,7 +63,7 @@ export class SiteMonitor {
     ) {
       downState.alertStage = "PINGED";
       this.sendMessage(
-        `Hi <!channel>! ${siteUrl} has been down for the past ${
+        `Konnichiwa <!channel>! ${siteUrl} has been down for the past ${
           this.pingThresholdMs / 1000
         } seconds with the following errors: ${downState.failErrors.join(", ")}`
       );
