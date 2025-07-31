@@ -22,6 +22,7 @@ registerListeners(app);
 
     app.logger.info("⚡️ Bolt app is running! ⚡️");
     app.logger.info(`Bot user id: ${appUserId}`);
+
     setUpDailyGreeting(async (msg) => {
       // make sure latest message was not by mem-cho
       const latestMessage = (
@@ -30,7 +31,7 @@ registerListeners(app);
             limit: 1,
             channel: env.CMUEATS_CHANNEL_ID,
           })
-          .catch(app.logger.error)
+          .catch((er) => app.logger.error(er))
       )?.messages?.[0];
 
       if (latestMessage?.bot_profile?.id !== appUserId) {
@@ -40,7 +41,7 @@ registerListeners(app);
             text: msg,
             channel: env.CMUEATS_CHANNEL_ID,
           })
-          .catch(app.logger.error);
+          .catch((er) => app.logger.error(er));
       } else {
         app.logger.info("Skipping morning greeting. Dead chat");
       }
