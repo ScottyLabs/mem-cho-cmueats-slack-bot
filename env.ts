@@ -2,7 +2,7 @@ import { z } from "zod";
 import * as dotenv from "dotenv";
 
 dotenv.config(); // loads in .env file if present
-
+console.log(process.env);
 const envSchema = z.object({
   SLACK_APP_TOKEN: z.string(),
   SLACK_BOT_TOKEN: z.string(),
