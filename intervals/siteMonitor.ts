@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { env } from "../env";
 
 interface SiteData {
   downState?: {
@@ -63,7 +64,7 @@ export class SiteMonitor {
     ) {
       downState.alertStage = "PINGED";
       this.sendMessage(
-        `Konnichiwa <!channel>! ${siteUrl} has been down for the past ${
+        `<!channel>! ${siteUrl} has been down for the past ${
           this.pingThresholdMs / 1000
         } seconds with the following errors: ${downState.failErrors.join(", ")}`
       );
@@ -85,18 +86,20 @@ export class SiteMonitor {
     const websiteLines = Object.entries(this.siteStatus)
       .map(
         ([siteUrl, siteData]) =>
-          `${siteUrl}: Uptime: ${(
+          `${
+            siteData.downState === undefined ? ":cmueats-up:" : ":cmueats-down:"
+          } \`${(
             (siteData.successfulFetchCount /
               (siteData.successfulFetchCount + siteData.failedFetchCount)) *
             100
-          ).toFixed(3)}% (${siteData.successfulFetchCount}/${
+          )
+            .toFixed(3)
+            .padStart(7)}%\` ${siteUrl} (${siteData.successfulFetchCount}/${
             siteData.successfulFetchCount + siteData.failedFetchCount
-          }) *CURRENT STATUS:* ${
-            siteData.downState === undefined ? "UP" : "DOWN"
-          }`
+          })`
       )
       .join("\n");
-    return `*Website Status*\n${websiteLines}\n\n \`Startup time: ${this.startupTime.toLocaleString(
+    return `*Website Status*\n${websiteLines}\n\nStartup time: \`${this.startupTime.toLocaleString(
       {
         weekday: "short",
         month: "short",
@@ -104,6 +107,6 @@ export class SiteMonitor {
         hour: "2-digit",
         minute: "2-digit",
       }
-    )}\``;
+    )}\`\nHosted on: \`${env.HOST_PLATFORM}\``;
   }
 }
