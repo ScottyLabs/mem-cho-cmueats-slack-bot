@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { env } from "../env";
+import { env, ISiteTrackingInfo } from "../env";
 
 interface SiteData {
   downState?: {
@@ -12,22 +12,24 @@ interface SiteData {
 }
 export class SiteMonitor {
   siteStatus: Record<string, SiteData> = {};
+  doNotPing: Record<string, boolean> = {};
   sendMessage: (msg: string) => void;
   startupTime = DateTime.local({ zone: "America/New_York" });
   alertThresholdMs: number;
   pingThresholdMs: number;
 
   constructor(
-    sites: string[],
+    sites: ISiteTrackingInfo[],
     sendMessage: (msg: string) => void,
     alertThresholdMs: number,
     pingThresholdMs: number
   ) {
-    for (const siteUrl of sites) {
-      this.siteStatus[siteUrl] = {
+    for (const site of sites) {
+      this.siteStatus[site.url] = {
         successfulFetchCount: 0,
         failedFetchCount: 0,
       };
+      this.doNotPing[site.url] = site.doNotPing;
     }
     this.sendMessage = sendMessage;
     this.alertThresholdMs = alertThresholdMs;
@@ -60,13 +62,14 @@ export class SiteMonitor {
     }
     if (
       +new Date() - downState.firstDownTimestamp >= this.pingThresholdMs &&
-      downState.alertStage === "WARNED"
+      downState.alertStage === "WARNED" &&
+      !this.doNotPing[siteUrl]
     ) {
       downState.alertStage = "PINGED";
       this.sendMessage(
         `<!channel>! ${siteUrl} has been down for the past ${
           this.pingThresholdMs / 1000
-        } seconds with the following errors: ${downState.failErrors.join(", ")}`
+        } seconds with ${downState.failErrors.length} errors`
       );
     }
   }

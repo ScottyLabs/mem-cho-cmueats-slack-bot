@@ -10,7 +10,10 @@ const checkSite = (
 ) => {
   console.log(`Running check for ${url}`);
   fetch(url, { signal: AbortSignal.timeout(env.URL_TIMEOUT_MS) })
-    .then(onSuccess)
+    .then((res) => {
+      if (res.status !== 200) onError(res);
+      else onSuccess(res);
+    })
     .catch(onError);
 };
 
@@ -26,14 +29,14 @@ export const setUpUptimeChecker = (
   setInterval(() => {
     env.MONITORED_URLS.forEach((site) =>
       checkSite(
-        site,
+        site.url,
         (error) => {
-          console.log(`check failed for ${site}`, error);
-          siteMonitor?.siteDown(site, error);
+          console.log(`check failed for ${site.url}`, error);
+          siteMonitor?.siteDown(site.url, error);
         },
-        () => {
-          console.log(`check successful for ${site}`);
-          siteMonitor?.siteUp(site);
+        (res) => {
+          console.log(`check successful for ${site.url}`);
+          siteMonitor?.siteUp(site.url);
         }
       )
     );
