@@ -1,106 +1,162 @@
 import { DateTime } from "luxon";
-import { env, ISiteTrackingInfo } from "../env";
-
-interface SiteData {
-  downState?: {
-    firstDownTimestamp: number;
-    failErrors: string[];
-    alertStage: "NONE" | "WARNED" | "PINGED";
-  };
-  successfulFetchCount: number;
-  failedFetchCount: number;
+import { env } from "../env";
+import { trackedSitesTable, uptimeRecordsTable } from "../db/schema";
+import { dbType } from "../db";
+import { eq, gte, sql } from "drizzle-orm";
+type SiteInfo = typeof trackedSitesTable.$inferSelect;
+interface DownState {
+  firstDownTimestamp: number;
+  failErrors: string[];
+  alertStage: "NONE" | "WARNED" | "PINGED";
 }
+const THIRTY_DAYS_MS = 1000 * 60 * 60 * 24 * 30;
+/**
+ * wrapper for actually handling the logic when a site goes up or down
+ */
 export class SiteMonitor {
-  siteStatus: Record<string, SiteData> = {};
-  doNotPing: Record<string, boolean> = {};
-  sendMessage: (msg: string) => void;
+  downSites: Record<string, DownState> = {};
+  sendMessage: (msg: string, channelId: string) => void;
   startupTime = DateTime.local({ zone: "America/New_York" });
   alertThresholdMs: number;
   pingThresholdMs: number;
+  db: dbType;
 
   constructor(
-    sites: ISiteTrackingInfo[],
-    sendMessage: (msg: string) => void,
+    sendMessage: (msg: string, channelId: string) => void,
     alertThresholdMs: number,
-    pingThresholdMs: number
+    pingThresholdMs: number,
+    db: dbType
   ) {
-    for (const site of sites) {
-      this.siteStatus[site.url] = {
-        successfulFetchCount: 0,
-        failedFetchCount: 0,
-      };
-      this.doNotPing[site.url] = site.doNotPing;
-    }
     this.sendMessage = sendMessage;
     this.alertThresholdMs = alertThresholdMs;
     this.pingThresholdMs = pingThresholdMs;
+    this.db = db;
   }
-  siteDown(siteUrl: string, error: any) {
-    if (this.siteStatus[siteUrl] === undefined) return;
-    this.siteStatus[siteUrl].failedFetchCount++;
+  async siteDown(site: SiteInfo, error: string) {
+    console.log(`check failed for ${site.url}`, error);
 
-    if (this.siteStatus[siteUrl].downState === undefined) {
-      this.siteStatus[siteUrl].downState = {
-        firstDownTimestamp: +new Date(),
+    if (this.downSites[site.url] === undefined) {
+      this.downSites[site.url] = {
+        firstDownTimestamp: Date.now(),
         failErrors: [],
         alertStage: "NONE",
       };
     }
-    const downState = this.siteStatus[siteUrl].downState;
-    downState.failErrors.push(String(error));
+
+    const downState = this.downSites[site.url];
+    downState.failErrors.push(error);
+    await this.db.insert(uptimeRecordsTable).values({
+      up: false,
+      details: error,
+      site_id: site.id,
+    });
 
     if (
-      +new Date() - downState.firstDownTimestamp >= this.alertThresholdMs &&
+      Date.now() - downState.firstDownTimestamp >= this.alertThresholdMs &&
       downState.alertStage === "NONE"
     ) {
       downState.alertStage = "WARNED";
       this.sendMessage(
-        `Konnichiwa! ${siteUrl} has been down for the past ${
+        `~hey uh ${site.display_name} (${
+          site.url
+        }) has been down for the past ${
           this.alertThresholdMs / 1000
-        } seconds with the following errors: ${downState.failErrors.join(", ")}`
+        } seconds with the following errors: ${downState.failErrors.join(
+          ", "
+        )}`,
+        site.channel_to_notify
       );
     }
     if (
-      +new Date() - downState.firstDownTimestamp >= this.pingThresholdMs &&
+      Date.now() - downState.firstDownTimestamp >= this.pingThresholdMs &&
       downState.alertStage === "WARNED" &&
-      !this.doNotPing[siteUrl]
+      site.should_ping
     ) {
       downState.alertStage = "PINGED";
       this.sendMessage(
-        `<!channel>! ${siteUrl} has been down for the past ${
+        `<!channel>! ${site.display_name} (${
+          site.url
+        }) has been down for the past ${
           this.pingThresholdMs / 1000
-        } seconds with ${downState.failErrors.length} errors`
+        } seconds with ${downState.failErrors.length} errors`,
+        site.channel_to_notify
       );
     }
   }
-  siteUp(siteUrl: string) {
-    if (this.siteStatus[siteUrl] === undefined) return;
+  async siteUp(site: SiteInfo, responseTimeMs: number) {
+    console.log(`check successful for ${site.url}`);
 
-    this.siteStatus[siteUrl].successfulFetchCount++;
-    if (this.siteStatus[siteUrl].downState !== undefined) {
-      if (this.siteStatus[siteUrl].downState.alertStage !== "NONE") {
-        this.sendMessage(`${siteUrl} is back up! :3`);
-      }
-      this.siteStatus[siteUrl].downState = undefined;
+    await this.db.insert(uptimeRecordsTable).values({
+      up: true,
+      details: null,
+      site_id: site.id,
+      response_time_ms: responseTimeMs,
+    });
+    if (this.downSites[site.url] === undefined) return;
+
+    if (this.downSites[site.url].alertStage !== "NONE") {
+      this.sendMessage(
+        `${site.display_name} (${site.url}) is back up! :3`,
+        site.channel_to_notify
+      );
     }
+    delete this.downSites[site.url];
   }
 
-  getStatusAsString() {
-    const websiteLines = Object.entries(this.siteStatus)
-      .map(
-        ([siteUrl, siteData]) =>
-          `${
-            siteData.downState === undefined ? ":cmueats-up:" : ":cmueats-down:"
-          } \`${(
-            (siteData.successfulFetchCount /
-              (siteData.successfulFetchCount + siteData.failedFetchCount)) *
-            100
-          )
-            .toFixed(3)
-            .padStart(7)}%\` ${siteUrl} (${siteData.successfulFetchCount}/${
-            siteData.successfulFetchCount + siteData.failedFetchCount
-          })`
+  async getStatusAsString() {
+    const siteStatusSubquery = this.db
+      .select({
+        site_id: uptimeRecordsTable.site_id,
+        upCount:
+          sql<string>`count(CASE WHEN ${uptimeRecordsTable.up} THEN 1 END)`.as(
+            "up_count"
+          ),
+        downCount:
+          sql<string>`count(CASE WHEN NOT ${uptimeRecordsTable.up} THEN 1 END)`.as(
+            "down_count"
+          ),
+        responseTime: sql<
+          number | null
+        >`AVG(${uptimeRecordsTable.response_time_ms})`.as(
+          "average_response_time"
+        ),
+      })
+      .from(uptimeRecordsTable)
+      .where(
+        gte(
+          uptimeRecordsTable.time_checked,
+          new Date(Date.now() - THIRTY_DAYS_MS)
+        )
       )
+      .groupBy(uptimeRecordsTable.site_id)
+      .as("t");
+    const allSiteData = await this.db
+      .select()
+      .from(siteStatusSubquery)
+      .innerJoin(
+        trackedSitesTable,
+        eq(siteStatusSubquery.site_id, trackedSitesTable.id)
+      )
+      .where(eq(trackedSitesTable.actively_tracked, true));
+
+    const websiteLines = allSiteData
+      .map(({ t, sites: site }) => {
+        const upCount = parseInt(t.upCount);
+        const downCount = parseInt(t.downCount);
+        return `${
+          this.downSites[site.url] === undefined
+            ? ":cmueats-up:"
+            : ":cmueats-down:"
+        } \`${((upCount / (upCount + downCount)) * 100)
+          .toFixed(3)
+          .padStart(7)}%\` *${site.display_name}* (${site.url}) \`${upCount}/${
+          upCount + downCount
+        }\` \`${
+          t.responseTime === null
+            ? "N/A"
+            : "~" + t.responseTime.toFixed(0) + "ms"
+        }\``;
+      })
       .join("\n");
     return `*Website Status*\n${websiteLines}\n\nStartup time: \`${this.startupTime.toLocaleString(
       {

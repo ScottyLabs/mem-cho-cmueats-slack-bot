@@ -3,6 +3,8 @@ import registerListeners from "./listeners";
 import { setUpDailyGreeting } from "./intervals/morning";
 import { setUpUptimeChecker } from "./intervals/uptimeChecker";
 import { env } from "./env";
+import { trackedSitesTable } from "./db/schema";
+import { db } from "./db";
 
 /** Initialization */
 const app = new App({
@@ -47,15 +49,31 @@ registerListeners(app);
       }
     });
 
-    setUpUptimeChecker((msg) =>
-      app.client.chat
-        .postMessage({
-          text: msg,
-          channel: env.CMUEATS_CHANNEL_ID,
-        })
-        .catch(app.logger.error)
+    setUpUptimeChecker(
+      (msg, channelId) =>
+        app.client.chat
+          .postMessage({
+            text: msg,
+            channel: channelId,
+          })
+          .catch(app.logger.error),
+      db
     );
   } catch (error) {
     app.logger.error("Unable to start App", error);
   }
 })();
+
+async function seedDb() {
+  const existingData = await db.select().from(trackedSitesTable);
+  if (existingData.length) return;
+  for (const site of env.MONITORED_URLS) {
+    await db.insert(trackedSitesTable).values({
+      display_name: site.url,
+      channel_to_notify: "C093QH5PNH4",
+      should_ping: !site.doNotPing,
+      url: site.url,
+    });
+  }
+}
+seedDb();

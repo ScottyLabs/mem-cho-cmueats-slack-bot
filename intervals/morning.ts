@@ -14,6 +14,10 @@ const greetings = [
   "yawwn good morning cmueats!",
   "Good morning!",
   "New day, new life!",
+  "aeeeeee",
+  "why do we exist, honestly",
+  "life is probably meaningless, oh well",
+  "does true love exist?",
 ];
 export const scheduleNextGreeting = (
   sendMessage: (msg: string) => Promise<unknown>,
@@ -23,11 +27,11 @@ export const scheduleNextGreeting = (
   console.log(
     `Scheduling morning message for ${nextMorningTime}. Current time: ${currentTime}`
   );
-  setTimeout(() => {
+  setTimeout(async () => {
     sendMessage(
       `${
         greetings[Math.floor(Math.random() * greetings.length)]
-      }\n\n${getWebsiteStatusString()}`
+      }\n\n${await getWebsiteStatusString()}`
     );
     scheduleNextGreeting(sendMessage, nextMorningTime.plus({ days: 1 })); // this actually accounts for DST properly
   }, nextMorningTime.diff(currentTime).toMillis());

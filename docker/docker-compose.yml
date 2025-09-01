@@ -1,0 +1,16 @@
+name: mem-cho-db
+
+services:
+  postgres:
+    image: postgres:17.5
+    container_name: mem-cho-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: donotuseinproduction
+    ports:
+      - 127.0.0.1:5439:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

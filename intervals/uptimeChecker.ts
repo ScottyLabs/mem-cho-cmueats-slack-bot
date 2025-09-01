@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { dbType } from "../db";
+import { trackedSitesTable } from "../db/schema";
 import { env } from "../env";
 import { SiteMonitor } from "./siteMonitor";
 
@@ -5,46 +8,51 @@ let siteMonitor: SiteMonitor | undefined = undefined;
 
 const checkSite = (
   url: string,
-  onError: (error: any) => any,
-  onSuccess: (data: any) => any
+  onError: (error: string) => any,
+  onSuccess: (responseTimeMs: number) => any
 ) => {
   console.log(`Running check for ${url}`);
+  const start = performance.now();
   fetch(url, { signal: AbortSignal.timeout(env.URL_TIMEOUT_MS) })
     .then((res) => {
-      if (res.status !== 200) onError(res);
-      else onSuccess(res);
+      if (res.status !== 200) onError(res.status + ": " + res.statusText);
+      else onSuccess(performance.now() - start);
     })
-    .catch(onError);
+    .catch((er) => onError(JSON.stringify(er.cause)));
 };
 
 export const setUpUptimeChecker = (
-  sendMessage: (msg: string) => Promise<any>
+  sendMessage: (msg: string, channelId: string) => Promise<any>,
+  db: dbType
 ) => {
   siteMonitor = new SiteMonitor(
-    env.MONITORED_URLS,
     sendMessage,
     env.ALERT_THRESHOLD_MS,
-    env.PING_THRESHOLD_MS
+    env.PING_THRESHOLD_MS,
+    db
   );
-  setInterval(() => {
-    env.MONITORED_URLS.forEach((site) =>
+  setInterval(async () => {
+    const trackedURLs = await db
+      .select()
+      .from(trackedSitesTable)
+      .where(eq(trackedSitesTable.actively_tracked, true));
+    trackedURLs.forEach((site) =>
       checkSite(
         site.url,
         (error) => {
-          console.log(`check failed for ${site.url}`, error);
-          siteMonitor?.siteDown(site.url, error);
+          siteMonitor?.siteDown(site, error);
         },
-        (res) => {
-          console.log(`check successful for ${site.url}`);
-          siteMonitor?.siteUp(site.url);
+        (responseTime) => {
+          siteMonitor?.siteUp(site, responseTime);
         }
       )
     );
   }, env.MONITOR_INTERVAL_MS);
 };
 
-export const getWebsiteStatusString = () => {
+export const getWebsiteStatusString = async () => {
   return (
-    siteMonitor?.getStatusAsString() ?? "Site monitor has not been initialized!"
+    (await siteMonitor?.getStatusAsString()) ??
+    "Site monitor has not been initialized!"
   );
 };

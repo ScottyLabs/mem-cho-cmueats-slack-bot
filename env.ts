@@ -30,5 +30,6 @@ const envSchema = z.object({
   ALERT_THRESHOLD_MS: z.coerce.number().default(60 * 1000),
   PING_THRESHOLD_MS: z.coerce.number().default(5 * 60 * 1000),
   HOST_PLATFORM: z.string().default("unspecified"),
+  DATABASE_URL: z.string().url(),
 });
 export const env = envSchema.parse(process.env);
