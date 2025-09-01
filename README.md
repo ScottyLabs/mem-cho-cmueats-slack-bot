@@ -3,9 +3,11 @@
 ## Getting started
 
 Run `pnpm install` to install packages.
-
+`pnpm setup-db` to start your local database.
 `pnpm build && pnpm start` to run the server locally.
 (Note that to run your updated changes, you'll need to re-run the command)
+
+If you make any changes to the schema, be sure to run `pnpm db:push` to update your local db, and `pnpm db:generate` before you commit. This generates migration files that will then automatically be applied to the prod db when deployed on railway.
 
 Do make sure that you populate the necessary env variables in a `.env` file before running. Check the Railway env variables and the `env.sample` file for reference, or ask Eric Xu on Slack if you have any questions.
 
