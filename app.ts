@@ -3,7 +3,6 @@ import registerListeners from "./listeners";
 import { setUpDailyGreeting } from "./intervals/morning";
 import { setUpUptimeChecker } from "./intervals/uptimeChecker";
 import { env } from "./env";
-import { trackedSitesTable } from "./db/schema";
 import { db } from "./db";
 
 /** Initialization */
@@ -56,7 +55,7 @@ registerListeners(app);
             text: msg,
             channel: channelId,
           })
-          .catch(app.logger.error),
+          .catch((er) => app.logger.error(er)),
       db
     );
   } catch (error) {

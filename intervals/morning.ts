@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { getWebsiteStatusString } from "./uptimeChecker";
+import { getTodaysWeather } from "./weather";
 
 const greetingTime = {
   hour: 9,
@@ -29,9 +29,10 @@ export const scheduleNextGreeting = (
   );
   setTimeout(async () => {
     sendMessage(
-      `${
-        greetings[Math.floor(Math.random() * greetings.length)]
-      }\n\n${await getWebsiteStatusString()}`
+      await getTodaysWeather().catch((e) => {
+        console.error(e);
+        return "Morning! I would give you the weather report for today, but the National Weather Service api seems to be unavailable. >_<";
+      })
     );
     scheduleNextGreeting(sendMessage, nextMorningTime.plus({ days: 1 })); // this actually accounts for DST properly
   }, nextMorningTime.diff(currentTime).toMillis());

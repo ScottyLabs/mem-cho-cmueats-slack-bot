@@ -45,11 +45,14 @@ export class SiteMonitor {
 
     const downState = this.downSites[site.url];
     downState.failErrors.push(error);
-    await this.db.insert(uptimeRecordsTable).values({
-      up: false,
-      details: error,
-      site_id: site.id,
-    });
+    await this.db
+      .insert(uptimeRecordsTable)
+      .values({
+        up: false,
+        details: error,
+        site_id: site.id,
+      })
+      .catch();
 
     if (
       Date.now() - downState.firstDownTimestamp >= this.alertThresholdMs &&
@@ -86,12 +89,15 @@ export class SiteMonitor {
   async siteUp(site: SiteInfo, responseTimeMs: number) {
     console.log(`check successful for ${site.url}`);
 
-    await this.db.insert(uptimeRecordsTable).values({
-      up: true,
-      details: null,
-      site_id: site.id,
-      response_time_ms: responseTimeMs,
-    });
+    await this.db
+      .insert(uptimeRecordsTable)
+      .values({
+        up: true,
+        details: null,
+        site_id: site.id,
+        response_time_ms: responseTimeMs,
+      })
+      .catch();
     if (this.downSites[site.url] === undefined) return;
 
     if (this.downSites[site.url].alertStage !== "NONE") {

@@ -35,7 +35,11 @@ export const setUpUptimeChecker = (
     const trackedURLs = await db
       .select()
       .from(trackedSitesTable)
-      .where(eq(trackedSitesTable.actively_tracked, true));
+      .where(eq(trackedSitesTable.actively_tracked, true))
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
     trackedURLs.forEach((site) =>
       checkSite(
         site.url,
@@ -52,7 +56,9 @@ export const setUpUptimeChecker = (
 
 export const getWebsiteStatusString = async () => {
   return (
-    (await siteMonitor?.getStatusAsString()) ??
-    "Site monitor has not been initialized!"
+    (await siteMonitor?.getStatusAsString().catch((e) => {
+      console.error(e);
+      return "Site status unavailable!";
+    })) ?? "Site monitor has not been initialized!"
   );
 };
