@@ -18,7 +18,13 @@ const checkSite = (
       if (res.status !== 200) onError(res.status + ": " + res.statusText);
       else onSuccess(performance.now() - start);
     })
-    .catch((er) => onError(JSON.stringify(er.cause)));
+    .catch((er) =>
+      onError(
+        er.cause !== undefined
+          ? JSON.stringify(er.cause)
+          : JSON.stringify(er.stack?.split("\n")[0])
+      )
+    );
 };
 
 export const setUpUptimeChecker = (
